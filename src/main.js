@@ -1,8 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const jsonFileHandler = require('./components/jsonFileHandler');
 const dataAnalyzer = require('./components/dataAnalyzer');
-const path = require('path');
-const fs = require('fs');
 
 const jsonHandler = new jsonFileHandler();
 const analyzer = new dataAnalyzer();
@@ -30,9 +28,19 @@ function createWindow() {
 }
 
 function updateView(event) {
-  const filterWord = nameWords[currentWordCountIndex];
+  const filterWord = nameWords[currentWordCountIndex].trim();
   const filteredObjects = analyzer.getAllFilteredArrays(nameArray, filterWord);
-  const currentWord = filteredObjects[0].filteredArray[0]
+  const currentIndex = filteredObjects.findIndex(obj => obj.filterWord === filterWord.trim());
+  const currentWord = filteredObjects[currentIndex].filteredArray[0];
+
+  event.reply('json-data', { 
+    filteredObjects, 
+    currentWord });
+}
+
+function updateAfterSplit(event, splitArrayObject) {
+  const filteredObjects = analyzer.getAllFilteredArraysFromSplitArray(nameArray, splitArrayObject.newArray);
+  const currentWord = filteredObjects[splitArrayObject.firstIndex].filteredArray[0]
 
   event.reply('json-data', { 
     filteredObjects, 
@@ -71,4 +79,6 @@ ipcMain.on('forward-button-clicked', (event) => {
   }
 });
 
-// ipcMain.on('split-button-clicked', (event, data) => {
+ipcMain.on('split-button-clicked', (event, splitArrayObject) => {
+  updateAfterSplit(event, splitArrayObject);
+});

@@ -17,13 +17,29 @@ class DataAnalyzer {
     }
 
     getAllFilteredArrays(nameArray, word) {
-        const name = nameArray.find(name => name.includes(word.trim()));
-        if (!name) {
+        const name = nameArray.find(name => name.split(' ').includes(word));
+         if (!name) {
             return [];
         }
         const wordArray = name.split(' ');
         return wordArray.map(singleWord => this.filterNamesByWord(nameArray, singleWord));
     }
+
+    // TODO: fix this jank, ex. Spirit will pick up Spirit-walker
+    filterNamesByWordChunk(nameArray, word) {
+        const trimmedWord = word.trim();
+        console.log('trimmedWord: ', trimmedWord)
+        const filteredArray = nameArray.filter(name => {
+            return name.includes(trimmedWord);
+        });
+        return { filterWord: trimmedWord, filteredArray: filteredArray }
+    }
+
+    getAllFilteredArraysFromSplitArray(nameArray, splitArray) {
+        return splitArray.map(singleWord => this.filterNamesByWordChunk(nameArray, singleWord));
+    }
+
+
 }
 
 module.exports = DataAnalyzer;
