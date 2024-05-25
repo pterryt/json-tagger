@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="index.css">
+</head>
+
+<body>
+  <div id="top-half">
+    <div id="button-container">
+      <button id="split-button">Split</button>
+      <button id="reset-button">Reset</button>
+    </div>
+  </div>
+  <div id="button-container">
+    <button id="back-button">Back</button>
+    <button id="forward-button">Forward</button>
+  </div>
+
+  <div id="json-container"></div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+
+    const backButton = document.getElementById('back-button');
+    backButton.addEventListener('click', () => {
+      ipcRenderer.send('back-button-clicked');
+    });
+
+    const forwardButton = document.getElementById('forward-button');
+    forwardButton.addEventListener('click', () => {
+      ipcRenderer.send('forward-button-clicked');
+    });
+
+    document.getElementById('split-button').addEventListener('click', () => {
+      const selection = window.getSelection();
+      if (selection.rangeCount == 1) {
+        const parentElement = selection.getRangeAt(0).commonAncestorContainer.parentNode;
+        if (parentElement.id == 'first-appearance-div') {
+          const selectedText = selection.toString();
+          const unselectedText = parentElement.textContent.replace(selectedText, '');
+          ipcRenderer.send('split-button-clicked', { selected: selectedText, unselected: unselectedText });
+        }
+      }
+    });
+
+    ipcRenderer.send('get-json-data');
+
+    ipcRenderer.on('json-data', (event, data) => {
+      const colors = ['rgb(186,255,201)', 'rgb(255,179,186)', 'rgb(255,255,186)'];
+      const filteredObjects = data.filteredObjects;
+      const targetWord = data.currentWord;
+
+      const topHalfDiv = document.getElementById('top-half');
+
+      const oldtargetWordDiv = document.getElementById('target-word-div');
+      if (oldtargetWordDiv) {
+        topHalfDiv.removeChild(oldtargetWordDiv);
+      }
+
+      const targetWordDiv = document.createElement('div');
+      targetWordDiv.id = 'target-word-div'
+      targetWordDiv.textContent = targetWord;
+      console.log(targetWord)
+      targetWordDiv.style.fontSize = '2em';
+      topHalfDiv.appendChild(targetWordDiv);
+
+      const jsonContainer = document.getElementById('json-container');
+      // Remove old lists
+      while (jsonContainer.firstChild) {
+        jsonContainer.removeChild(jsonContainer.firstChild);
+      }
+
+      // Create a new div for each name in each array in namesArrays
+      filteredObjects.forEach((filteredObject, index) => {
+        const arrayContainer = document.createElement('div');
+        arrayContainer.className = 'array-container';
+
+        filteredObject.filteredArray.forEach((name, nameIndex) => {
+          const div = document.createElement('div');
+          div.textContent = name;
+          div.className = 'name-div'
+          div.style.color = colors[0];
+          div.addEventListener('click', () => {
+            const currentColorIndex = colors.indexOf(div.style.color.replace(/\s/g, ''));
+            const nextColorIndex = (currentColorIndex + 1) % colors.length;
+            div.style.color = colors[nextColorIndex];
+          });
+          arrayContainer.appendChild(div);
+        });
+        jsonContainer.appendChild(arrayContainer);
+      });
+    });
+  </script>
+</body>
+
+</html>
