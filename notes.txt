@@ -1,0 +1,3 @@
+add the split descriptor to words txt
+add a function to drop down, set word type
+change data analyzer functions so they only search words via the word arrays of the data entries as opposed to the names

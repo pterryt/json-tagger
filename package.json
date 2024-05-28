@@ -14,5 +14,8 @@
     "electron": "^30.0.7",
     "eslint": "^9.3.0",
     "globals": "^15.3.0"
+  },
+  "dependencies": {
+    "ini": "^4.1.3"
   }
 }

@@ -1,15 +1,18 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const jsonFileHandler = require('./components/jsonFileHandler');
-const dataAnalyzer = require('./components/dataAnalyzer');
+const FileHandler = require('./components/fileHandler');
+const dataAnalyzer = require('./components/dataHandler');
+const UserSettings = require('./components/userSettings');
 
-const jsonHandler = new jsonFileHandler();
+const userSettings = new UserSettings();
+const settings = userSettings.getUserSettings();
+
+const fileHandler = new FileHandler();
 const analyzer = new dataAnalyzer();
 
-const namesData = jsonHandler.readJsonFile('../unit_names.json');
-const nameWords = jsonHandler.getWordCountsFromFile('src/word_counts.txt');
-const nameArray = analyzer.createNpcNameArray(namesData);
+let namesData = fileHandler.loadNamesJson('../data/name_table');
+let nameWords = fileHandler.getWordCountsFromFile('src/data/word_counts.txt');
 
-let currentWordCountIndex = 0;
+let currentWordCountIndex = settings.LastSeenIndex || 0;
 let mainWindow;
 
 function createWindow() {
@@ -29,28 +32,17 @@ function createWindow() {
 
 function updateView(event) {
   const filterWord = nameWords[currentWordCountIndex].trim();
-  const filteredObjects = analyzer.getAllFilteredArrays(nameArray, filterWord);
-  const currentIndex = filteredObjects.findIndex(obj => obj.filterWord === filterWord.trim());
-  const currentWord = filteredObjects[currentIndex].filteredArray[0];
-
-  event.reply('json-data', { 
-    filteredObjects, 
-    currentWord });
-}
-
-function updateAfterSplit(event, splitArrayObject) {
-  const filteredObjects = analyzer.getAllFilteredArraysFromSplitArray(nameArray, splitArrayObject.newArray);
-  const currentWord = filteredObjects[splitArrayObject.firstIndex].filteredArray[0]
-
-  event.reply('json-data', { 
-    filteredObjects, 
-    currentWord });
+  // console.log('filterWord @main.updateView:', filterWord);
+  const filteredObjects = analyzer.getNameFilteredData(namesData, filterWord);
+  event.reply('json-data', filteredObjects);
 }
 
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    settings.LastSeenIndex = currentWordCountIndex;
+    userSettings.saveUserSettings(settings);
     app.quit();
   }
 });
@@ -80,5 +72,7 @@ ipcMain.on('forward-button-clicked', (event) => {
 });
 
 ipcMain.on('split-button-clicked', (event, splitArrayObject) => {
-  updateAfterSplit(event, splitArrayObject);
+  namesData = analyzer.splitUpdateData(namesData, splitArrayObject.selectedText);
+  nameWords.splice(currentWordCountIndex, 0, splitArrayObject.selectedText);
+  updateView(event);
 });

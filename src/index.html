@@ -21,13 +21,13 @@
 
   <script>
     const { ipcRenderer } = require('electron');
-    const { splitButtonClickedEvent } = require('./ui/eventHandler.js');
-    const DomHandler = require('./ui/domHandler.js');
-    const domHandler = new DomHandler(document);
-
-
+    const XDomHandler = require('./ui/xDomHandler.js');
+    const XEventHandler = require('./ui/xEventHandler.js');
+    const domHandler = new XDomHandler(document, ipcRenderer);
+    const eventHandler = new XEventHandler(ipcRenderer);
 
     let filterWords = [];
+    let targetName;
 
     const backButton = document.getElementById('back-button');
     backButton.addEventListener('click', () => {
@@ -40,26 +40,24 @@
     });
 
     document.getElementById('split-button').addEventListener('click', () => {
-      splitButtonClickedEvent(window.getSelection(), filterWords, ipcRenderer)
-    }
-    );
+      eventHandler.splitButtonClickedEvent(targetName, window.getSelection(), filterWords, ipcRenderer)
+    });
 
     ipcRenderer.send('get-json-data');
-
     ipcRenderer.on('json-data', (event, data) => {
 
-      const filteredObjects = data.filteredObjects;
-      const targetWord = data.currentWord;
-      filterWords = filteredObjects.map(obj => obj.filterWord);
+      const filteredObjectArray = data.filteredObjectArray;
+      targetName = data.name;
+      filterWords = filteredObjectArray.map(obj => obj.filterWord);
 
-      domHandler.createTargetWordDiv(targetWord);
+      domHandler.createTargetWordDiv(targetName);
 
       const jsonContainer = document.getElementById('json-container');
         while (jsonContainer.firstChild) {
             jsonContainer.removeChild(jsonContainer.firstChild);
           }
       
-      filteredObjects.forEach((filteredObject, index) => {
+      filteredObjectArray.forEach((filteredObject, index) => {
         domHandler.createFilteredListDisplay(filteredObject);
       });
     });
